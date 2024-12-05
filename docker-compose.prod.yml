@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  app:
+    image: jimmyruan/radium-app:production
+    platform: linux/amd64
+    volumes:
+      - ./:/var/www
+    env_file:
+      - .env.prod
+    networks:
+      - radium-network-prod
+    depends_on:
+      - mysql
+      - redis
+    command: php-fpm
+    deploy:
+      replicas: 3  # Scale to 3 instances
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+
+  nginx:
+    image: nginx:alpine
+    volumes:
+      - ./:/var/www
+      - ./docker/prod/nginx.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - radium-network-prod
+    ports:
+      - 80:80
+    depends_on:
+      - app
+
+  mysql:
+    image: mysql:8
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: radium-db
+    networks:
+      - radium-network-prod
+
+  redis:
+    image: redis:alpine
+    networks:
+      - radium-network-prod
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - 5672:5672
+      - 15672:15672
+    networks:
+      - radium-network-prod
+
+networks:
+  radium-network-prod:
+    driver: bridge

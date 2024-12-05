@@ -1,0 +1,48 @@
+services:
+    app:
+        image: jimmyruan/radium-app:latest
+        build:
+            context: .
+            dockerfile: Dockerfile
+        working_dir: /var/www
+        volumes:
+            - ./:/var/www
+        networks:
+            - radium-network
+        ports:
+            - 8000:8000
+        depends_on:
+            - mysql
+            - redis
+            - rabbitmq
+#        command: php artisan serve --host=0.0.0.0 --port=8000
+        command: tail -f /dev/null
+
+    mysql:
+        image: mysql:8
+        environment:
+            MYSQL_ROOT_PASSWORD: root
+            MYSQL_DATABASE: radium-db
+        ports:
+            - 3306:3306
+        networks:
+            - radium-network
+
+    redis:
+        image: redis:alpine
+        ports:
+            - 6379:6379
+        networks:
+            - radium-network
+
+    rabbitmq:
+        image: rabbitmq:3-management
+        ports:
+            - 5672:5672
+            - 15672:15672
+        networks:
+            - radium-network
+
+networks:
+    radium-network:
+        driver: bridge
